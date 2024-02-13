@@ -11,6 +11,11 @@ class EventType(Enum):
     DISPATCH = 2
     STOP = 3
     DEPART = 4
+
+class PaxState(Enum):
+    TO_BOARD = 1
+    ON_BOARD = 2
+    ARRIVED = 3
     
 class Transit:
     def __init__(self, id: int, capacity: int):
@@ -18,7 +23,7 @@ class Transit:
         self.state = TransitState.TO_DISPATCH 
         self.id = id
         self.last_stop_index = 0
-
+        self.occupancy = 0
 class Stop:
     def __init__(self, index: int):
         self.index = index
@@ -29,6 +34,8 @@ class Passenger:
         self.board_from = board_from
         self.alight_to = alight_to
         self.arr_time = arr_time
+        self.state = PaxState.TO_BOARD
+        self.on_transit_id = -1
 
 class SimulationEvent:
     def __init__(self, id: int, transit: Transit, event_type: EventType):

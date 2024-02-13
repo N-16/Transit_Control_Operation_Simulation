@@ -21,9 +21,9 @@ def get_trip_time(stop_id_from, stop_id_to, capacity):
             total_time += times_for_cap[link]
         return total_time
 
-def get_dwell():
-    # placeholder for now
-    return timedelta(seconds=20)
+def get_dwell(to_alight_count: int, to_board_count: int):
+    # per passenger, 5 seconds for boarding and 3 seconds for alighting. Taken from Mau-Luen Tham et al
+    return timedelta(seconds=(to_alight_count * 3) + (to_board_count * 5))
 
 class SimulationEnv:
     def __init__(self, transit_info: list, dispatch_schedule: list, stop_info: list, pax_info: list,start_time: time):
@@ -59,13 +59,14 @@ class SimulationEnv:
             transit.state = TransitState.STOP
             # Schedule event after Dwell
             new_event = SimulationEvent(self.event_schedule[-1]['event'].id + 1, transit, EventType.DEPART)
-            departure_time = (datetime.combine(date.today(), self.time) + get_dwell()).time() 
+            b_count = len(self.board_pax(stop_index=transit.last_stop_index, transit=transit))
+            departure_time = (datetime.combine(date.today(), self.time) + get_dwell(to_alight_count=0, to_board_count=b_count)).time() 
             self.event_schedule.append({'time': departure_time, 'event': new_event})
         elif event_type == EventType.DEPART:
             
             # Check if reached trip end
             if transit.last_stop_index == self.terminal_index:
-                print(str(self.time) + ": Transit "+ str(transit.id) + " reached terminal stop " + str(transit.last_stop_index))
+                print(str(self.time) + ": Transit "+ str(transit.id) + " has completed it's trip")
                 transit.state = TransitState.SERVED
                 # To check if reached all trip finished
                 end_sim = True
@@ -93,13 +94,48 @@ class SimulationEnv:
             transit.last_stop_index += 1
             # Schedule departing event based on dwell time
             new_event = SimulationEvent(self.event_schedule[-1]['event'].id + 1, transit, EventType.DEPART)
-            departure_time = (datetime.combine(date.today(), self.time) + get_dwell()).time()
+            al_count = len(self.alight_pax(stop_index=transit.last_stop_index, transit=transit))
+            b_count = len(self.board_pax(stop_index=transit.last_stop_index, transit=transit))
+            departure_time = (datetime.combine(date.today(), self.time) + get_dwell(to_alight_count=al_count, to_board_count=b_count)).time()
             self.event_schedule.append({'time': departure_time, 'event': new_event})
         self.event_schedule.remove(event_schedule_to_exec)
         return False
             
 
-        
+    def board_pax(self, stop_index: int, transit: Transit):
+        # get available passengers
+        av_pax = []
+        for p in self.pax:
+            #print(self.time, p.arr_time)
+            if p.state == PaxState.TO_BOARD and p.arr_time < self.time and p.board_from == stop_index:
+                av_pax.append(p)
+        #print("Available pax:", av_pax)
+        # check transit occupancy
+        boarding_pax = av_pax[:transit.capacity - transit.occupancy]
+        # update pax state
+        for p in boarding_pax:
+            p.state = PaxState.ON_BOARD
+            p.on_transit_id = transit.id
+            print("     '----Passenger " + str(p.id) + " has boarded transit " + str(transit.id))
+        # update transit occupancy
+        transit.occupancy += len(boarding_pax)
+        return boarding_pax
+
+    def alight_pax(self, stop_index: int, transit: Transit):
+        # get all boarded passengers, that are traveling in specific transit, with specific destination
+        al_pax = []
+        for p in self.pax:
+            #print(self.time, p.arr_time)
+            if p.state == PaxState.ON_BOARD and p.on_transit_id == transit.id and p.alight_to == stop_index:
+                al_pax.append(p)
+                # update pax state
+                p.state = PaxState.ARRIVED
+                p.on_transit_id = -1
+                print("     '----Passenger " + str(p.id) + " has arrived at it's destination stop: " + str(stop_index))        
+        # update transit occupancy
+        transit.occupancy -= len(al_pax)
+        return al_pax
+    
     def skip_to_next_event(self):
         latest_event_schedule = min(self.event_schedule, key=lambda x:x['time'])
         if self.time > latest_event_schedule['time']:
@@ -107,20 +143,7 @@ class SimulationEnv:
             return
         self.time = latest_event_schedule['time']
         return latest_event_schedule
-    
-    
-        
-
+   
     def initialize_transit(self):
         pass
 
-try:
-    env = SimulationEnv(TRANSIT_INFO, TRANSIT_SCHEDULE, STOPS, PAX_DEMAND, time(6, 55, 0))
-    max_itr = 10000
-    itr = 0
-    termination = env.step()
-    while not termination and itr < max_itr:
-        termination = env.step()
-        itr += 1
-except:
-    traceback.print_exc()
