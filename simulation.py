@@ -7,8 +7,8 @@ import traceback
 
 def get_trip_time(stop_id_from, stop_id_to, capacity):
     times_for_cap = next((item for item in TRANSIT_TRIP_TIME if item['capacity'] == capacity), None)
-    if stop_id_from > stop_id_to:
-        print("Invalid stops request")
+    #if stop_id_from > stop_id_to:
+        #print("Invalid stops request")
         # Change this if considering simulating return trips as well
     if stop_id_to - stop_id_from == 1:
         link = str(stop_id_from) + '-' + str(stop_id_to)
@@ -26,20 +26,20 @@ def get_dwell(to_alight_count: int, to_board_count: int):
     return timedelta(seconds=(to_alight_count * 3) + (to_board_count * 5))
 
 class SimulationEnv:
-    def __init__(self, transit_info: list, dispatch_schedule: list, stop_info: list, pax_info: list,start_time: time, end_time):
+    def __init__(self, transit_info: list, dispatch_schedule: list, stop_info: list, pax_info: list,start_time: time, end_time: time):
         self.transit = []
         for transit in transit_info:
             self.transit.append(Transit(**transit))
         self.stops = []
         for stop in stop_info:
             self.stops.append(Stop(**stop))
-        self.terminal_index = self.stops[-1].index
+        self.terminal_index = self.stops[0].index
         self.pax = []
         for pax in pax_info:
             self.pax.append(Passenger(**pax))
         self.time = start_time
         self.event_schedule = [{'time': start_time, 'event': SimulationEvent(1, None, EventType.INIT)}]
-
+        self.end_time = end_time
         for dispatch in dispatch_schedule:
             transit = next((item for item in self.transit if item.id == dispatch['transit_id']), None)
             new_event = SimulationEvent(self.event_schedule[-1]['event'].id + 1, transit, EventType.DISPATCH)
@@ -65,7 +65,7 @@ class SimulationEnv:
         elif event_type == EventType.DEPART:
             
             # Check if reached trip end
-            if transit.last_stop_index == self.terminal_index:
+            if transit.last_stop_index == self.terminal_index and self.time > self.end_time:
                 print(str(self.time) + ": Transit "+ str(transit.id) + " has completed it's trip")
                 transit.state = TransitState.SERVED
                 # To check if reached all trip finished
@@ -77,21 +77,27 @@ class SimulationEnv:
                 if end_sim: 
                     self.event_schedule.remove(event_schedule_to_exec)
                     print(str(self.time) + ": SIMULATION IS COMPLETED")
+                    served = 0
+                    for p in self.pax:
+                        if p.state == PaxState.ARRIVED:
+                            served += 1
+                    print("Served " + str(served) + ' out of ' + str(len(self.pax)))
                     return end_sim
+            
             else:
                 print(str(self.time) + ": Transit "+ str(transit.id) + " departing from stop " + str(transit.last_stop_index))
                 # Switch transit state to MOVING
                 transit.state = TransitState.MOVING
                 # Schedule event based on arrival time
                 new_event = SimulationEvent(self.event_schedule[-1]['event'].id + 1, transit, EventType.STOP)
-                arr_time = (datetime.combine(date.today(), self.time) + get_trip_time(transit.last_stop_index, transit.last_stop_index + 1, transit.capacity)).time()
+                arr_time = (datetime.combine(date.today(), self.time) + get_trip_time(transit.last_stop_index, (transit.last_stop_index % len(self.stops))+ 1, transit.capacity)).time()
                 self.event_schedule.append({'time': arr_time,
                                             'event': new_event})
         elif event_type == EventType.STOP:
-            print(str(self.time) + ": Transit "+ str(transit.id) + " reached stop " + str(transit.last_stop_index + 1))
             # Switch transit state to STOP
             transit.state = TransitState.STOP
-            transit.last_stop_index += 1
+            transit.last_stop_index = (transit.last_stop_index % len(self.stops)) + 1
+            print(str(self.time) + ": Transit "+ str(transit.id) + " reached stop " + str((transit.last_stop_index)))
             # Schedule departing event based on dwell time
             new_event = SimulationEvent(self.event_schedule[-1]['event'].id + 1, transit, EventType.DEPART)
             al_count = len(self.alight_pax(stop_index=transit.last_stop_index, transit=transit))
