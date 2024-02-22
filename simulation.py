@@ -26,7 +26,7 @@ def get_dwell(to_alight_count: int, to_board_count: int):
     return timedelta(seconds=(to_alight_count * 3) + (to_board_count * 5))
 
 class SimulationEnv:
-    def __init__(self, transit_info: list, dispatch_schedule: list, stop_info: list, pax_info: list,start_time: time):
+    def __init__(self, transit_info: list, dispatch_schedule: list, stop_info: list, pax_info: list,start_time: time, end_time):
         self.transit = []
         for transit in transit_info:
             self.transit.append(Transit(**transit))
