@@ -37,7 +37,7 @@ def generate_pax_demand(start_time, end_time, stop_demand, terminal_indices, pea
             pax_demand.append({'id': len(pax_demand) + 1, 'board_from': stop['index'], 'alight_to': alight_to, 'arr_time': t})
     return pax_demand
 
-PAX_DEMAND = generate_pax_demand(sim_info.START_TIME, sim_info.END_TIME, STOP_DEMAND, (1, 10), sim_info.PEAKS)
+PAX_DEMAND = generate_pax_demand(sim_info.PAX_START_TIME, sim_info.END_TIME, STOP_DEMAND, (1, 10), sim_info.PEAKS)
 
 x = range(1, 19)
 y_alight = np.zeros(18)

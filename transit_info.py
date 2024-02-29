@@ -1,13 +1,21 @@
 from datetime import time, timedelta
 
-TRANSIT_INFO = [{'id':1,'capacity':40},
-                {'id':2, 'capacity':40}]
+TRANSIT_INFO = [{'id':1,'capacity':100, 'controllable':True},
+                {'id':2, 'capacity':100, 'controllable':True},
+                {'id':3, 'capacity':100, 'controllable':True},
+                {'id':4, 'capacity':100, 'controllable':True},
+                {'id':5, 'capacity':100, 'controllable':True},
+                {'id':6, 'capacity':100, 'controllable':True}]
 
-TRANSIT_SCHEDULE = [{'transit_id':1, 'time':time(7,0,0)},
-                    {'transit_id':2, 'time':time(7,5,0)}]
+TRANSIT_SCHEDULE = [{'transit_id':1, 'time':time(6,30,0)},
+                    {'transit_id':2, 'time':time(6,40,0)},
+                    {'transit_id':3, 'time':time(6,50,0)},
+                    {'transit_id':4, 'time':time(7,0,0)},
+                    {'transit_id':5, 'time':time(7,10,0)},
+                    {'transit_id':6, 'time':time(7,20,0)}]
 
-TRANSIT_TRIP_TIME = [{'capacity': 40,
-                    '1-2': timedelta(minutes=3, seconds=25),
+TRANSIT_TRIP_TIME = [{'capacity': 100,
+                    '1-2': timedelta(minutes=3),
                     '2-3': timedelta(minutes=3),
                     '3-4': timedelta(minutes=3),
                     '4-5': timedelta(minutes=3),

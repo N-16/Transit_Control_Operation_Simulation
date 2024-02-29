@@ -9,9 +9,9 @@ try:
     env = SimulationEnv(TRANSIT_INFO, TRANSIT_SCHEDULE, STOPS, PAX_DEMAND, START_TIME, END_TIME)
     max_itr = 10000
     itr = 0
-    termination = env.step()
+    termination,_ = env.step()
     while not termination and itr < max_itr:
-        termination = env.step()
+        termination,_ = env.step()
         itr += 1
 except:
     traceback.print_exc()

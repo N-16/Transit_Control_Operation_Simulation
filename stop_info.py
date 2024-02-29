@@ -7,12 +7,13 @@ class AlightLevels(Enum):
     LOW = 3
 
 STOPS = [{'index': 1}, {'index': 2},{'index': 3},
-         {'index': 4}, {'index': 5},{'index': 3},
+         {'index': 4}, {'index': 5},{'index': 6},
          {'index': 7}, {'index': 8},{'index': 9},
          {'index': 10}, {'index': 11},{'index': 12},
          {'index': 13}, {'index': 14},{'index': 15},
          {'index': 16}, {'index': 17},{'index': 18},]
 
+# alight levels are not used
 STOP_DEMAND = [{'index': 1, 'arr_rate': 2.3, 'alight_level': AlightLevels.HIGH}, #terminal
                {'index': 2, 'arr_rate': 1.0, 'alight_level': AlightLevels.LOW},
                {'index': 3, 'arr_rate': 0.8, 'alight_level': AlightLevels.LOW},

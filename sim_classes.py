@@ -1,5 +1,6 @@
 from enum import Enum
 from datetime import time
+import random
 class TransitState(Enum):
     TO_DISPATCH = 1
     STOP = 2
@@ -18,12 +19,30 @@ class PaxState(Enum):
     ARRIVED = 3
     
 class Transit:
-    def __init__(self, id: int, capacity: int):
+    def __init__(self, id: int, capacity: int, controllable = False):
         self.capacity = capacity
         self.state = TransitState.TO_DISPATCH 
         self.id = id
         self.last_stop_index = 0
         self.occupancy = 0
+        self.controllable = controllable
+    def get_action(self):
+        if random.uniform(0, 1) > 0.75:
+            return True
+        return False
+    
+class RLTransit(Transit):
+    def __init__(self, id: int, capacity: int, controllable=False):
+        super().__init__(id, capacity, controllable)
+
+    
+    def get_skip_action(self, transit_loc_capacity: list, pax_demand: list):
+        pass
+         
+
+
+        
+
 class Stop:
     def __init__(self, index: int):
         self.index = index
