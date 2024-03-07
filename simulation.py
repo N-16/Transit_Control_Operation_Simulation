@@ -26,10 +26,10 @@ def get_dwell(to_alight_count: int, to_board_count: int):
     return timedelta(seconds=(to_alight_count * 3) + (to_board_count * 5))
 
 class SimulationEnv:
-    def __init__(self, transit_info: list, dispatch_schedule: list, stop_info: list, pax_info: list,start_time: time, end_time: time):
+    def __init__(self, transit_info: list, dispatch_schedule: list, stop_info: list, pax_info: list,start_time: time, end_time: time, log_file):
         self.transit = []
         for transit in transit_info:
-            self.transit.append(Transit(**transit))
+            self.transit.append(RLTransit(**transit))
         self.stops = []
         for stop in stop_info:
             self.stops.append(Stop(**stop))
@@ -40,6 +40,7 @@ class SimulationEnv:
         self.time = start_time
         self.event_schedule = [{'time': start_time, 'event': SimulationEvent(1, None, EventType.INIT)}]
         self.end_time = end_time
+        self.log_file = log_file
         for dispatch in dispatch_schedule:
             transit = next((item for item in self.transit if item.id == dispatch['transit_id']), None)
             new_event = SimulationEvent(self.event_schedule[-1]['event'].id + 1, transit, EventType.DISPATCH)
@@ -51,10 +52,10 @@ class SimulationEnv:
         transit = event_schedule_to_exec['event'].transit
         reward = 0
         if event_type == EventType.INIT:
-            print(str(self.time) + ": SIMULATION HAS BEGUN")
+            print(str(self.time) + ": SIMULATION HAS BEGUN", file=self.log_file)
             # Add more information like passenger demand, bus schedule etc.
         elif event_type == EventType.DISPATCH:
-            print(str(self.time) + ": Dispatching transit " + str(transit.id))
+            print(str(self.time) + ": Dispatching transit " + str(transit.id), file=self.log_file)
             # Switch transit state to STOP
             transit.last_stop_index = 1
             transit.state = TransitState.STOP
@@ -67,7 +68,9 @@ class SimulationEnv:
             
             # Check if reached trip end
             if transit.last_stop_index == self.terminal_index and self.time > self.end_time:
-                print(str(self.time) + ": Transit "+ str(transit.id) + " has completed it's trip")
+                print(str(self.time) + ": Transit "+ str(transit.id) +
+                       " has completed it's trip", file=self.log_file)
+                transit.save_models('transit_'+str(transit.id))
                 transit.state = TransitState.SERVED
                 # To check if reached all trip finished
                 end_sim = True
@@ -77,7 +80,7 @@ class SimulationEnv:
                         break
                 if end_sim: 
                     self.event_schedule.remove(event_schedule_to_exec)
-                    print(str(self.time) + ": SIMULATION IS COMPLETED")
+                    print(str(self.time) + ": SIMULATION IS COMPLETED", file=self.log_file)
                     served = 0
                     on_board = 0
                     for p in self.pax:
@@ -85,13 +88,13 @@ class SimulationEnv:
                             served += 1
                         if p.state == PaxState.ON_BOARD:
                             on_board += 1
-                    print("Served " + str(served) + ' out of ' + str(len(self.pax)))
+                    print("Served " + str(served) + ' out of ' + str(len(self.pax)), file=self.log_file)
                     reward -= (len(self.pax) - served) * 100
-                    print(str(on_board) + ' passengers are still on board')
+                    print(str(on_board) + ' passengers are still on board', file=self.log_file)
                     return True, reward
             
             else:
-                print(str(self.time) + ": Transit "+ str(transit.id) + " departing from stop " + str(transit.last_stop_index))
+                print(str(self.time) + ": Transit "+ str(transit.id) + " departing from stop " + str(transit.last_stop_index), file=self.log_file)
                 # Switch transit state to MOVING
                 transit.state = TransitState.MOVING
                 # Schedule event based on arrival time
@@ -102,26 +105,36 @@ class SimulationEnv:
         elif event_type == EventType.STOP:
             # request skip control operation
             state = self.get_state(transit)
-            print(state)
+            print("State = " + str(state), file=self.log_file)
             skip = False
-            if transit.controllable:
-                skip = transit.get_action() 
+            operate = True
+            for t in self.transit:
+                if t.state == TransitState.TO_DISPATCH or t.state == TransitState.SERVED:
+                    operate = False
+                    break
+             
+            if transit.controllable and operate:
+                skip = transit.get_action(list(state))
+                transit.last_action = skip
+
             # Switch transit state to STOP
             transit.state = TransitState.STOP
             transit.last_stop_index = (transit.last_stop_index % len(self.stops)) + 1
-            print(str(self.time) + ": Transit "+ str(transit.id) + " reached stop " + str((transit.last_stop_index)))
+            print(str(self.time) + ": Transit "+ str(transit.id) + " reached stop " + str((transit.last_stop_index)), file=self.log_file)
             if skip:
-                    print("Transit " + str(transit.id) + " is not boarding at stop " + str(transit.last_stop_index))
+                print("Transit " + str(transit.id) + " is not boarding at stop " + str(transit.last_stop_index), file=self.log_file)
             # Schedule departing event based on dwell time
             new_event = SimulationEvent(self.event_schedule[-1]['event'].id + 1, transit, EventType.DEPART)
             al_pax, total_travel_time = self.alight_pax(stop_index=transit.last_stop_index, transit=transit)
             al_count = len(al_pax)
             reward -= total_travel_time
+            transit.last_reward = -total_travel_time
             b_count = 0 if skip or (self.time > self.end_time and transit.last_stop_index == self.terminal_index) else len(self.board_pax(stop_index=transit.last_stop_index, transit=transit))
 
             departure_time = (datetime.combine(date.today(), self.time) + get_dwell(to_alight_count=al_count, to_board_count=b_count)).time()
             self.event_schedule.append({'time': departure_time, 'event': new_event})
         self.event_schedule.remove(event_schedule_to_exec)
+        
         return False, reward
             
 
@@ -139,7 +152,7 @@ class SimulationEnv:
         for p in boarding_pax:
             p.state = PaxState.ON_BOARD
             p.on_transit_id = transit.id
-            print("     '----Passenger " + str(p.id) + " has boarded transit " + str(transit.id))
+            print("     '----Passenger " + str(p.id) + " has boarded transit " + str(transit.id), file=self.log_file)
         # update transit occupancy
         transit.occupancy += len(boarding_pax)
         return boarding_pax
@@ -156,7 +169,7 @@ class SimulationEnv:
                 p.state = PaxState.ARRIVED
                 p.on_transit_id = -1
                 time_to_reach = util.time_diff(self.time, p.arr_time).total_seconds()/60
-                print("     '----Passenger " + str(p.id) + " from " + str(p.board_from) + " has arrived at it's destination stop " + str(stop_index) + " in "+ str(time_to_reach)+ " minutes")
+                print("     '----Passenger " + str(p.id) + " from " + str(p.board_from) + " has arrived at it's destination stop " + str(stop_index) + " in "+ str(time_to_reach)+ " minutes", file=self.log_file)
                 total_time_to_reach += time_to_reach        
         # update transit occupancy
         transit.occupancy -= len(al_pax)
@@ -180,7 +193,7 @@ class SimulationEnv:
                 transit_loc_capacity.append({'id': t.id, 'last_stop_index': t.last_stop_index, 'occupancy': t.occupancy / t.capacity})
         # Forward headway of 2 upcoming transits
         transit_loc_capacity = sorted(transit_loc_capacity, key=lambda d: d['last_stop_index'])
-        print(transit_loc_capacity)
+        print(transit_loc_capacity, file=self.log_file)
         index = 0
         for loc in transit_loc_capacity:
             if loc['last_stop_index'] > focus_transit.last_stop_index:
