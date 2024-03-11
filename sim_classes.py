@@ -79,7 +79,7 @@ class RLTransit(Transit):
             self.store_transition(self.last_observation, self.last_action,
                                    self.last_reward, observation, False)
             self.learn()
-        if np.random.random() > self.epsilon:
+        if np.random.random() > self.epsilon or not learn:
             #observation = observation[np.newaxis,:]
             state = T.tensor(observation).to(self.q_eval.device)
             _, advantage = self.q_eval.forward(state)

@@ -26,7 +26,9 @@ def get_dwell(to_alight_count: int, to_board_count: int):
     return timedelta(seconds=(to_alight_count * 3) + (to_board_count * 5))
 
 class SimulationEnv:
-    def __init__(self, transit_info: list, dispatch_schedule: list, stop_info: list, pax_info: list,start_time: time, end_time: time, log_file, load_models = False):
+    def __init__(self, transit_info: list, dispatch_schedule: list, stop_info: list
+                 , pax_info: list,start_time: time, end_time: time, log_file, 
+                 load_models = False, save_models=True, control_op = True):
         self.transit_info = transit_info
         self.dispatch_schedule = dispatch_schedule
         self.stop_info = stop_info
@@ -54,6 +56,8 @@ class SimulationEnv:
             transit = next((item for item in self.transit if item.id == dispatch['transit_id']), None)
             new_event = SimulationEvent(self.event_schedule[-1]['event'].id + 1, transit, EventType.DISPATCH)
             self.event_schedule.append({'time': dispatch['time'], 'event': new_event})
+        self.save_models = save_models
+        self.control_op = control_op
     
     def reset(self):
 
@@ -99,7 +103,8 @@ class SimulationEnv:
                 print(str(self.time) + ": Transit "+ str(transit.id) +
                        " has completed it's trip", file=self.log_file)
                 transit.store_terminal_transition(self.get_state(transit))
-                transit.save_models('transit_'+str(transit.id))
+                if self.save_models:
+                    transit.save_models('transit_'+str(transit.id))
                 transit.state = TransitState.SERVED
                 # To check if reached all trip finished
                 end_sim = True
@@ -142,7 +147,7 @@ class SimulationEnv:
                     operate = False
                     break
              
-            if transit.controllable and operate:
+            if transit.controllable and operate and self.control_op:
                 skip = transit.get_action(list(state), learn=learn)
                 transit.last_action = skip
 
