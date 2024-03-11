@@ -26,10 +26,19 @@ def get_dwell(to_alight_count: int, to_board_count: int):
     return timedelta(seconds=(to_alight_count * 3) + (to_board_count * 5))
 
 class SimulationEnv:
-    def __init__(self, transit_info: list, dispatch_schedule: list, stop_info: list, pax_info: list,start_time: time, end_time: time, log_file):
+    def __init__(self, transit_info: list, dispatch_schedule: list, stop_info: list, pax_info: list,start_time: time, end_time: time, log_file, load_models = False):
+        self.transit_info = transit_info
+        self.dispatch_schedule = dispatch_schedule
+        self.stop_info = stop_info
+        self.pax_info = pax_info
+        self.start_time = start_time
         self.transit = []
         for transit in transit_info:
-            self.transit.append(RLTransit(**transit))
+            t = RLTransit(**transit)
+            if load_models:
+                t.load_models('transit_'+str(t.id))
+            self.transit.append(t)
+
         self.stops = []
         for stop in stop_info:
             self.stops.append(Stop(**stop))
@@ -46,7 +55,26 @@ class SimulationEnv:
             new_event = SimulationEvent(self.event_schedule[-1]['event'].id + 1, transit, EventType.DISPATCH)
             self.event_schedule.append({'time': dispatch['time'], 'event': new_event})
     
-    def step(self):
+    def reset(self):
+
+        for transit in self.transit:
+            transit.reset()
+        self.stops = []
+        for stop in self.stop_info:
+            self.stops.append(Stop(**stop))
+        self.terminal_index = self.stops[0].index
+        self.pax = []
+        self.pax_info = generate_pax_demand(sim_info.PAX_START_TIME, sim_info.END_TIME, STOP_DEMAND, (1, 10), sim_info.PEAKS)
+        for pax in self.pax_info:
+            self.pax.append(Passenger(**pax))
+        self.time = self.start_time
+        self.event_schedule = [{'time': self.start_time, 'event': SimulationEvent(1, None, EventType.INIT)}]
+        for dispatch in self.dispatch_schedule:
+            transit = next((item for item in self.transit if item.id == dispatch['transit_id']), None)
+            new_event = SimulationEvent(self.event_schedule[-1]['event'].id + 1, transit, EventType.DISPATCH)
+            self.event_schedule.append({'time': dispatch['time'], 'event': new_event})
+    
+    def step(self, epsilon= 0.0, learn=True):
         event_schedule_to_exec = self.skip_to_next_event()
         event_type = event_schedule_to_exec['event'].event_type
         transit = event_schedule_to_exec['event'].transit
@@ -70,6 +98,7 @@ class SimulationEnv:
             if transit.last_stop_index == self.terminal_index and self.time > self.end_time:
                 print(str(self.time) + ": Transit "+ str(transit.id) +
                        " has completed it's trip", file=self.log_file)
+                transit.store_terminal_transition(self.get_state(transit))
                 transit.save_models('transit_'+str(transit.id))
                 transit.state = TransitState.SERVED
                 # To check if reached all trip finished
@@ -114,7 +143,7 @@ class SimulationEnv:
                     break
              
             if transit.controllable and operate:
-                skip = transit.get_action(list(state))
+                skip = transit.get_action(list(state), learn=learn)
                 transit.last_action = skip
 
             # Switch transit state to STOP
@@ -129,12 +158,12 @@ class SimulationEnv:
             al_count = len(al_pax)
             reward -= total_travel_time
             transit.last_reward = -total_travel_time
-            b_count = 0 if skip or (self.time > self.end_time and transit.last_stop_index == self.terminal_index) else len(self.board_pax(stop_index=transit.last_stop_index, transit=transit))
+            b_count = 0 if skip or (self.time > self.end_time and transit.last_stop_index == self.terminal_index)\
+                        else len(self.board_pax(stop_index=transit.last_stop_index, transit=transit))
 
             departure_time = (datetime.combine(date.today(), self.time) + get_dwell(to_alight_count=al_count, to_board_count=b_count)).time()
             self.event_schedule.append({'time': departure_time, 'event': new_event})
         self.event_schedule.remove(event_schedule_to_exec)
-        
         return False, reward
             
 

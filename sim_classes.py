@@ -62,14 +62,22 @@ class RLTransit(Transit):
         self.last_reward = 0
         self.last_action = 0
 
+    def reset(self):
+        self.state = TransitState.TO_DISPATCH
+        self.last_stop_index = 0
+        self.occupancy = 0 
+        self.last_observation = None
+        self.last_reward = 0
+        self.last_action = 0
+    
     def store_transition(self, state, action, reward, state_, done):
         self.memory.store_transition(state, action, reward, state_, done)
     
-    def get_action(self, observation):
+    def get_action(self, observation, learn=True):
         
-        if self.last_observation != None:
+        if self.last_observation != None and learn:
             self.store_transition(self.last_observation, self.last_action,
-                                   self.last_reward, observation)
+                                   self.last_reward, observation, False)
             self.learn()
         if np.random.random() > self.epsilon:
             #observation = observation[np.newaxis,:]
@@ -78,7 +86,12 @@ class RLTransit(Transit):
             action = T.argmax(advantage).item()
         else:
             action = np.random.choice(self.action_space)
+        self.last_observation = observation
         return action
+
+    def store_terminal_transition(self, state_):
+         self.store_transition(self.last_observation, self.last_action,
+                                   self.last_reward, state_, True)
     
     def replace_target_network(self):
         if self.replace_target_cnt is not None and \
@@ -86,9 +99,10 @@ class RLTransit(Transit):
             self.q_next.load_state_dict(self.q_eval.state_dict())
 
     def decrement_epsilon(self):
-    
+        
         self.epsilon = self.epsilon - self.eps_dec \
                          if self.epsilon > self.eps_min else self.eps_min
+        #print("Decrementing Epsilon to:", self.epsilon)
 
     def learn(self):
         if self.memory.mem_cntr < self.batch_size:
@@ -130,13 +144,15 @@ class RLTransit(Transit):
         self.q_eval.save_checkpoint(name)
         self.q_next.save_checkpoint(name)
 
-    def load_models(self):
-        self.q_eval.load_checkpoint()
-        self.q_next.load_checkpoint()
+    def load_models(self,name):
+        self.q_eval.load_checkpoint(name)
+        self.q_next.load_checkpoint(name)
 
     
     def reset_epsilon(self):
         self.epsilon = self.default_epsilon
+    
+
 
     
     def get_skip_action(self, transit_loc_capacity: list, pax_demand: list):

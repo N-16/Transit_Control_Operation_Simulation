@@ -53,7 +53,7 @@ class DuelingLinearDeepQNetwork(nn.Module):
         self.optimizer = optim.Adam(self.parameters(), lr=ALPHA)
         self.loss = nn.MSELoss()
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
-        print(self.device)
+        #print(self.device)
         self.to(self.device)
         self.checkpoint_dir = chkpt_dir
         self.checkpoint_file = os.path.join(self.checkpoint_dir, name+'_dqn')
@@ -70,9 +70,9 @@ class DuelingLinearDeepQNetwork(nn.Module):
         print('... saving checkpoint ...')
         T.save(self.state_dict(), self.checkpoint_file+"_"+name)
 
-    def load_checkpoint(self):
+    def load_checkpoint(self, name):
         print('... loading checkpoint ...')
-        self.load_state_dict(T.load(self.checkpoint_file))
+        self.load_state_dict(T.load(self.checkpoint_file+"_"+name))
     
     '''def save_as_onnx(self):
         print('... saving onnx ...')
@@ -139,9 +139,10 @@ class Agent(object):
             self.q_next.load_state_dict(self.q_eval.state_dict())
 
     def decrement_epsilon(self):
-    
+        print("Decrementing Epsilon")
         self.epsilon = self.epsilon - self.eps_dec \
                          if self.epsilon > self.eps_min else self.eps_min
+        print("Decrementing Epsilon to", self.epsilon)
 
     def learn(self):
         if self.memory.mem_cntr < self.batch_size:
