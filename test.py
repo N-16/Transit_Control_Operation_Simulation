@@ -9,13 +9,13 @@ import matplotlib.pyplot as plt
 from util import plotLearning
 
 try:
-    with open('logs/log_' + str(datetime.now())+'.txt', 'a') as f:
-        env = SimulationEnv(RL_TRANSIT_INFO, TRANSIT_SCHEDULE,
+    with open('../logs/log_' + str(datetime.now())+'.txt', 'a') as f:
+        env = SimulationEnv(RL_4_TRANSIT_INFO, HET_TRANSIT_SCHEDULE,
                              STOPS, PAX_DEMAND, START_TIME, END_TIME,
                                log_file=f, load_models=True, save_models = False, control_op=True)
         rewards = []
         first_itr = True
-        for i in range(1, 10):
+        for i in range(1, 20):
             print("Episode ", i)
             max_itr = 10000
             itr = 0

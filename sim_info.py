@@ -1,6 +1,6 @@
 from datetime import time
 
-START_TIME = time(6, 30, 0)
+START_TIME = time(6, 0, 0)
 PAX_START_TIME = time(7, 0, 0)
 END_TIME = time(22, 0, 0)
 

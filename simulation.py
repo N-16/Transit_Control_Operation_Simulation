@@ -224,7 +224,8 @@ class SimulationEnv:
         transit_loc_capacity = []
         for t in self.transit:
             if t.id != focus_transit.id:
-                transit_loc_capacity.append({'id': t.id, 'last_stop_index': t.last_stop_index, 'occupancy': t.occupancy / t.capacity})
+                transit_loc_capacity.append({'id': t.id, 'last_stop_index': t.last_stop_index,
+                                              'occupancy': t.occupancy / t.capacity, 'capacity': t.capacity})
         # Forward headway of 2 upcoming transits
         transit_loc_capacity = sorted(transit_loc_capacity, key=lambda d: d['last_stop_index'])
         print(transit_loc_capacity, file=self.log_file)
@@ -245,9 +246,10 @@ class SimulationEnv:
             h_y = focus_transit.last_stop_index + len(self.stops) - transit_y['last_stop_index']
 
 
-        cap_z = transit_z['occupancy']
-        cap_y = transit_y['occupancy']
-
+        occ_z = transit_z['occupancy']
+        occ_y = transit_y['occupancy']
+        cap_z = transit_z['capacity']
+        cap_y = transit_y['capacity']
         
         # Passenger demand at all stops starting from current stop
         pax_demand = {}
@@ -261,7 +263,7 @@ class SimulationEnv:
             pd.append(pax_demand[i])
         for i in range(1, focus_transit.last_stop_index):
             pd.append(pax_demand[i])
-        return h_z, cap_z, h_y, cap_y, *pd
+        return h_z, occ_z, cap_z, h_y, occ_y, cap_y, *pd
 
 
 
