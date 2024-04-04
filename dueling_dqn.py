@@ -53,12 +53,13 @@ class DuelingLinearDeepQNetwork(nn.Module):
         self.optimizer = optim.Adam(self.parameters(), lr=ALPHA)
         self.loss = nn.MSELoss()
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
-        #print(self.device)
+        print(self.device)
         self.to(self.device)
         self.checkpoint_dir = chkpt_dir
         self.checkpoint_file = os.path.join(self.checkpoint_dir, name+'_dqn')
 
     def forward(self, state):
+        state = state.float()
         l1 = F.relu(self.fc1(state))
         l2 = F.relu(self.fc2(l1))
         V = self.V(l2)

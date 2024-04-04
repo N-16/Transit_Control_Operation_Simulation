@@ -7,22 +7,24 @@ import traceback
 from datetime import datetime
 from util import plotLearning
 from earlystop import EarlyStopper
+from playsound import playsound
 
 
 
 try:
     with open('../logs/log_' + str(datetime.now())+'.txt', 'a') as f:
-        env = SimulationEnv(RL_4_TRANSIT_INFO, HET_TRANSIT_SCHEDULE,
+        env = SimulationEnv(RL_HET_3_TRANSIT_INFO, HET_TRANSIT_SCHEDULE,
                              STOPS, PAX_DEMAND, START_TIME, END_TIME,
                                log_file=f, load_models=False, save_models=True)
         rewards = []
         epsilons = []
         cache_prev_epsilon = []
         first_itr = True
+        episodes = 500
         early_stopper = EarlyStopper()
-        for i in range(1, 500):
-            print("Episode ", i)
-            max_itr = 10000
+        for i in range(0, episodes):
+            print("Episode ", i, "/", episodes)
+            max_itr = 100000000000
             itr = 0
             if first_itr:
                 first_itr = False
@@ -38,15 +40,15 @@ try:
             print('Epsilon:', env.transit[0].epsilon)
             epsilons.append(env.transit[0].epsilon)
             rewards.append(r)
-            if early_stopper.earlyStop(r):
+            '''if early_stopper.earlyStop(rewards):
+                playsound('extra/siren.wav')
                 resp = input('Continue Train?(y/n)')
                 if resp == 'n' or resp == 'N':
                     break
-            else:
-                early_stopper.resetCounter()
+                else:
+                    early_stopper.resetCounter()'''
         x = [i+1 for i in range(len(rewards))]
         plotLearning(x, rewards, filename='plot_learn.png', epsilons=epsilons)
 except:
     traceback.print_exc()
 
-def stopper():

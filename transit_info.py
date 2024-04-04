@@ -1,12 +1,12 @@
 from datetime import time, timedelta
 import hyper_params
 
-TRANSIT_INFO = [{'id':1,'capacity':100, 'controllable':True},
-                {'id':2, 'capacity':100, 'controllable':True},
-                {'id':3, 'capacity':100, 'controllable':True},
-                {'id':4, 'capacity':100, 'controllable':True},
-                {'id':5, 'capacity':100, 'controllable':True},
-                {'id':6, 'capacity':100, 'controllable':True}] #avg reward -781224.5099392333
+TRANSIT_INFO = [{'id':1,'capacity':100, 'controllable':False},
+                {'id':2, 'capacity':100, 'controllable':False},
+                {'id':3, 'capacity':100, 'controllable':False},
+                {'id':4, 'capacity':100, 'controllable':False},
+                {'id':5, 'capacity':100, 'controllable':False},
+                {'id':6, 'capacity':100, 'controllable':False}] #avg reward -781224.5099392333
 
 RL_1_TRANSIT_INFO = [{'id':1,'capacity':100, 'controllable':True,
                     **hyper_params.homo_para_1},
@@ -60,24 +60,28 @@ RL_HET_2_TRANSIT_INFO = [{'id':1,'capacity':30, 'controllable':True,
                 {'id':9,'capacity':100, 'controllable':True,
                     **hyper_params.homo_para_1}] #avg reward -516488.7834053114
 
-RL_HET_3_TRANSIT_INFO = [{'id':1,'capacity':20, 'controllable':True,
-                    **hyper_params.homo_para_1},
-                {'id':2,'capacity':20, 'controllable':True,
-                    **hyper_params.homo_para_1},
-                {'id':3,'capacity':50, 'controllable':True,
-                    **hyper_params.homo_para_1},
-                {'id':4,'capacity':20, 'controllable':True,
-                    **hyper_params.homo_para_1},
-                {'id':5,'capacity':20, 'controllable':True,
-                    **hyper_params.homo_para_1},
-                {'id':6,'capacity':50, 'controllable':True,
-                    **hyper_params.homo_para_1},
-                {'id':7,'capacity':20, 'controllable':True,
-                    **hyper_params.homo_para_1},
-                {'id':8,'capacity':20, 'controllable':True,
-                    **hyper_params.homo_para_1},
-                {'id':9,'capacity':50, 'controllable':True,
-                    **hyper_params.homo_para_1}] # avg reward: -1276275.0797636986
+RL_HET_3_TRANSIT_INFO = [{'id':1,'capacity':40, 'controllable':True,
+                    **hyper_params.para_2},
+                {'id':2,'capacity':40, 'controllable':True,
+                    **hyper_params.para_2},
+                {'id':3,'capacity':100, 'controllable':True,
+                    **hyper_params.para_2},
+                {'id':4,'capacity':40, 'controllable':True,
+                    **hyper_params.para_2},
+                {'id':5,'capacity':40, 'controllable':True,
+                    **hyper_params.para_2},
+                {'id':6,'capacity':100, 'controllable':True,
+                    **hyper_params.para_2},
+                {'id':7,'capacity':40, 'controllable':True,
+                    **hyper_params.para_2},
+                {'id':8,'capacity':40, 'controllable':True,
+                    **hyper_params.para_2},
+                {'id':9,'capacity':100, 'controllable':True,
+                    **hyper_params.para_2}] # avg reward: -491766.9592029815 with free: -481299.20967985346(500 episodes) further -478265.82139748306
+                                                # with no consecutive skipping 500 episodes: -490151.07812799903
+                                                # no control: -581572.62999502
+                                                # added free for focus transit: -527585.8905340385
+                                                # new reward: -650929.8297385317
 
 RL_2_TRANSIT_INFO = [{'id':1,'capacity':30, 'controllable':True,
                     **hyper_params.homo_para_1},
@@ -126,24 +130,47 @@ RL_3_TRANSIT_INFO = [{'id':1,'capacity':50, 'controllable':True,
                 {'id':6,'capacity':50, 'controllable':True,
                     **hyper_params.homo_para_1}] #avg reward: -1408676.83323704
 
-RL_4_TRANSIT_INFO = [{'id':1,'capacity':30, 'controllable':True,
-                    **hyper_params.homo_para_1},
-                {'id':2,'capacity':30, 'controllable':True,
-                    **hyper_params.homo_para_1},
-                {'id':3,'capacity':30, 'controllable':True,
-                    **hyper_params.homo_para_1},
-                {'id':4,'capacity':30, 'controllable':True,
-                    **hyper_params.homo_para_1},
-                {'id':5,'capacity':30, 'controllable':True,
-                    **hyper_params.homo_para_1},
-                {'id':6,'capacity':30, 'controllable':True,
-                    **hyper_params.homo_para_1},
-                {'id':7,'capacity':30, 'controllable':True,
-                    **hyper_params.homo_para_1},
-                {'id':8,'capacity':30, 'controllable':True,
-                    **hyper_params.homo_para_1},
-                {'id':9,'capacity':30, 'controllable':True,
-                    **hyper_params.homo_para_1}] #avg. reward: -1317164.6526023648
+RL_4_TRANSIT_INFO = [{'id':1,'capacity':60, 'controllable':True,
+                    **hyper_params.para_2},
+                {'id':2,'capacity':60, 'controllable':True,
+                    **hyper_params.para_2},
+                {'id':3,'capacity':60, 'controllable':True,
+                    **hyper_params.para_2},
+                {'id':4,'capacity':60, 'controllable':True,
+                    **hyper_params.para_2},
+                {'id':5,'capacity':60, 'controllable':True,
+                    **hyper_params.para_2},
+                {'id':6,'capacity':60, 'controllable':True,
+                    **hyper_params.para_2},
+                {'id':7,'capacity':60, 'controllable':True,
+                    **hyper_params.para_2},
+                {'id':8,'capacity':60, 'controllable':True,
+                    **hyper_params.para_2},
+                {'id':9,'capacity':60, 'controllable':True,
+                    **hyper_params.para_2}] #avg. reward: -497806.3827622947
+                                            #free with no censcutive skipping 500 episodes -596589.3936249306
+                                            #no control: -624150.8941155346
+                                            #added free for focus_transit: -578744.1521167008, -601262.1649379034?
+                                            #new reward (droppped * 1000): -710314.2489727635
+
+RL_5_TRANSIT_INFO = [{'id':1,'capacity':100, 'controllable':True,
+                    **hyper_params.para_2},
+                {'id':2,'capacity':100, 'controllable':True,
+                    **hyper_params.para_2},
+                {'id':3,'capacity':100, 'controllable':True,
+                    **hyper_params.para_2},
+                {'id':4,'capacity':100, 'controllable':True,
+                    **hyper_params.para_2},
+                {'id':5,'capacity':100, 'controllable':True,
+                    **hyper_params.para_2},
+                {'id':6,'capacity':100, 'controllable':True,
+                    **hyper_params.para_2},
+                {'id':7,'capacity':100, 'controllable':True,
+                    **hyper_params.para_2},
+                {'id':8,'capacity':100, 'controllable':True,
+                    **hyper_params.para_2},
+                {'id':9,'capacity':100, 'controllable':True,
+                    **hyper_params.para_2}] 
 
 
 
@@ -181,7 +208,7 @@ HET_TRANSIT_SCHEDULE = [{'transit_id':1, 'time':time(6,0,0)},
                     {'transit_id':8, 'time':time(7,10,0)},
                     {'transit_id':9, 'time':time(7,20,0)},]
 
-TRANSIT_TRIP_TIME = [{'capacity': 30,
+TRANSIT_TRIP_TIME = [{'capacity': 100,
                     '1-2': timedelta(minutes=3),
                     '2-3': timedelta(minutes=3),
                     '3-4': timedelta(minutes=3),
@@ -200,7 +227,7 @@ TRANSIT_TRIP_TIME = [{'capacity': 30,
                     '16-17': timedelta(minutes=3),
                     '17-18': timedelta(minutes=3),
                     '18-1': timedelta(minutes=3)},
-                    {'capacity': 50,
+                    {'capacity': 40,
                     '1-2': timedelta(minutes=3),
                     '2-3': timedelta(minutes=3),
                     '3-4': timedelta(minutes=3),
@@ -219,7 +246,7 @@ TRANSIT_TRIP_TIME = [{'capacity': 30,
                     '16-17': timedelta(minutes=3),
                     '17-18': timedelta(minutes=3),
                     '18-1': timedelta(minutes=3)},
-                    {'capacity': 20,
+                    {'capacity': 60,
                     '1-2': timedelta(minutes=3),
                     '2-3': timedelta(minutes=3),
                     '3-4': timedelta(minutes=3),

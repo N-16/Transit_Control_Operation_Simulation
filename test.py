@@ -10,14 +10,15 @@ from util import plotLearning
 
 try:
     with open('../logs/log_' + str(datetime.now())+'.txt', 'a') as f:
-        env = SimulationEnv(RL_4_TRANSIT_INFO, HET_TRANSIT_SCHEDULE,
+        env = SimulationEnv(RL_HET_3_TRANSIT_INFO, HET_TRANSIT_SCHEDULE,
                              STOPS, PAX_DEMAND, START_TIME, END_TIME,
                                log_file=f, load_models=True, save_models = False, control_op=True)
         rewards = []
         first_itr = True
-        for i in range(1, 20):
-            print("Episode ", i)
-            max_itr = 10000
+        episodes = 10
+        for i in range(1, episodes):
+            print("Episode ", i, "/", episodes)
+            max_itr = 1000000000
             itr = 0
             if first_itr:
                 first_itr = False

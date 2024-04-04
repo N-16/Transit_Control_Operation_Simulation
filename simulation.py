@@ -123,7 +123,7 @@ class SimulationEnv:
                         if p.state == PaxState.ON_BOARD:
                             on_board += 1
                     print("Served " + str(served) + ' out of ' + str(len(self.pax)), file=self.log_file)
-                    reward -= (len(self.pax) - served) * 100
+                    reward -= (len(self.pax) - served) * 1000
                     print(str(on_board) + ' passengers are still on board', file=self.log_file)
                     return True, reward
             
@@ -146,7 +146,18 @@ class SimulationEnv:
                 if t.state == TransitState.TO_DISPATCH or t.state == TransitState.SERVED:
                     operate = False
                     break
-             
+            upcoming_stop = (transit.last_stop_index % len(self.stops)) + 1
+            stop_index = None
+            for s in range(0,len(self.stops)):
+                if upcoming_stop == self.stops[s].index:
+                    stop_index = s
+                    break
+
+            if self.stops[stop_index].skipped_last:
+                print("Skipping control operation restricted", file=self.log_file)
+                operate = False
+                self.stops[stop_index].skipped_last = False
+                    
             if transit.controllable and operate and self.control_op:
                 skip = transit.get_action(list(state), learn=learn)
                 transit.last_action = skip
@@ -156,6 +167,7 @@ class SimulationEnv:
             transit.last_stop_index = (transit.last_stop_index % len(self.stops)) + 1
             print(str(self.time) + ": Transit "+ str(transit.id) + " reached stop " + str((transit.last_stop_index)), file=self.log_file)
             if skip:
+                self.stops[stop_index].skipped_last = True
                 print("Transit " + str(transit.id) + " is not boarding at stop " + str(transit.last_stop_index), file=self.log_file)
             # Schedule departing event based on dwell time
             new_event = SimulationEvent(self.event_schedule[-1]['event'].id + 1, transit, EventType.DEPART)
@@ -225,10 +237,11 @@ class SimulationEnv:
         for t in self.transit:
             if t.id != focus_transit.id:
                 transit_loc_capacity.append({'id': t.id, 'last_stop_index': t.last_stop_index,
-                                              'occupancy': t.occupancy / t.capacity, 'capacity': t.capacity})
+                                              'normalized occupancy': t.occupancy / t.capacity,
+                                                'occupancy': t.occupancy, 'capacity': t.capacity})
         # Forward headway of 2 upcoming transits
         transit_loc_capacity = sorted(transit_loc_capacity, key=lambda d: d['last_stop_index'])
-        print(transit_loc_capacity, file=self.log_file)
+        #print(transit_loc_capacity, file=self.log_file)
         index = 0
         for loc in transit_loc_capacity:
             if loc['last_stop_index'] > focus_transit.last_stop_index:
@@ -246,8 +259,12 @@ class SimulationEnv:
             h_y = focus_transit.last_stop_index + len(self.stops) - transit_y['last_stop_index']
 
 
-        occ_z = transit_z['occupancy']
-        occ_y = transit_y['occupancy']
+        occ_z = transit_z['normalized occupancy']
+        occ_y = transit_y['normalized occupancy']
+        free_a = focus_transit.capacity - focus_transit.occupancy
+        free_z = transit_z['capacity'] - transit_z['occupancy']
+        free_y = transit_y['capacity'] - transit_y['occupancy']
+        #print("free_Z=",free_z)
         cap_z = transit_z['capacity']
         cap_y = transit_y['capacity']
         
@@ -263,7 +280,7 @@ class SimulationEnv:
             pd.append(pax_demand[i])
         for i in range(1, focus_transit.last_stop_index):
             pd.append(pax_demand[i])
-        return h_z, occ_z, cap_z, h_y, occ_y, cap_y, *pd
+        return int(free_a), h_z, int(free_z), h_y, int(free_y), *pd
 
 
 

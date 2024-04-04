@@ -37,7 +37,7 @@ class Transit:
 class RLTransit(Transit):
     def __init__(self, id: int, capacity: int, gamma:float, epsilon:float, alpha:float,
                 n_actions:int, input_dims:tuple, mem_size:int, batch_size:int,
-                eps_min:float, eps_decay:float, replace = 1000, chkpt_dir = 'models'
+                eps_min:float, eps_decay:float, replace = 1000, chkpt_dir = 'models/models_to_load'
                 ,controllable=False):
         super().__init__(id, capacity, controllable)
         self.gamma = gamma
@@ -164,6 +164,7 @@ class RLTransit(Transit):
 class Stop:
     def __init__(self, index: int):
         self.index = index
+        self.skipped_last = False
 
 class Passenger:
     def __init__(self, id: int, board_from: int, alight_to: int, arr_time: time):
