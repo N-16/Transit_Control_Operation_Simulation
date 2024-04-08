@@ -25,10 +25,33 @@ def get_dwell(to_alight_count: int, to_board_count: int):
     # per passenger, 5 seconds for boarding and 3 seconds for alighting. Taken from Mau-Luen Tham et al
     return timedelta(seconds=(to_alight_count * 3) + (to_board_count * 5))
 
+class SimData:
+    def __init__(self) -> None:
+        self.time_data = []
+        self.unserved_pax_data = []
+    def register_time_data(self, id, waiting_time, ride_time):
+        self.time_data.append({'id':id, 'waiting_time': waiting_time, 'ride_time': ride_time})
+    
+    def register_unserved_pax_data(self, id, arr_time, board_from):
+        self.unserved_pax_data.append({'id':id, 'arr_time': arr_time, 'board_from': board_from})
+
+    def save(self, name=str(datetime.now())):
+        with open('sim_run_data/'+name+'_time.csv', 'w', newline='') as output_file:
+            dict_writer = csv.DictWriter(output_file, self.time_data[0].keys())
+            dict_writer.writeheader()
+            dict_writer.writerows(self.time_data)
+        with open('sim_run_data/'+name+'_unserved.csv', 'w', newline='') as output_file:
+            if len(self.unserved_pax_data) == 0:
+                dict_writer = csv.DictWriter(output_file, ['no', 'unserved', 'passengers'])
+            else:
+                dict_writer = csv.DictWriter(output_file, self.unserved_pax_data[0].keys())
+                dict_writer.writeheader()
+                dict_writer.writerows(self.unserved_pax_data)
+
 class SimulationEnv:
     def __init__(self, transit_info: list, dispatch_schedule: list, stop_info: list
                  , pax_info: list,start_time: time, end_time: time, log_file, 
-                 load_models = False, save_models=True, control_op = True):
+                 load_models = False, save_models=True, control_op = True, save_data = False):
         self.transit_info = transit_info
         self.dispatch_schedule = dispatch_schedule
         self.stop_info = stop_info
@@ -58,6 +81,8 @@ class SimulationEnv:
             self.event_schedule.append({'time': dispatch['time'], 'event': new_event})
         self.save_models = save_models
         self.control_op = control_op
+        self.save_data = save_data
+        self.sim_data = SimData()
     
     def reset(self):
 
@@ -77,6 +102,7 @@ class SimulationEnv:
             transit = next((item for item in self.transit if item.id == dispatch['transit_id']), None)
             new_event = SimulationEvent(self.event_schedule[-1]['event'].id + 1, transit, EventType.DISPATCH)
             self.event_schedule.append({'time': dispatch['time'], 'event': new_event})
+        self.sim_data=SimData()
     
     def step(self, epsilon= 0.0, learn=True):
         event_schedule_to_exec = self.skip_to_next_event()
@@ -115,16 +141,21 @@ class SimulationEnv:
                 if end_sim: 
                     self.event_schedule.remove(event_schedule_to_exec)
                     print(str(self.time) + ": SIMULATION IS COMPLETED", file=self.log_file)
+                    
                     served = 0
                     on_board = 0
                     for p in self.pax:
                         if p.state == PaxState.ARRIVED:
                             served += 1
-                        if p.state == PaxState.ON_BOARD:
+                        elif p.state == PaxState.ON_BOARD:
                             on_board += 1
+                        else: #to_board
+                            self.sim_data.register_unserved_pax_data(p.id, p.arr_time, p.board_from)
                     print("Served " + str(served) + ' out of ' + str(len(self.pax)), file=self.log_file)
                     reward -= (len(self.pax) - served) * 1000
                     print(str(on_board) + ' passengers are still on board', file=self.log_file)
+                    if self.save_data:
+                        self.sim_data.save(name=str(datetime.now()))
                     return True, reward
             
             else:
@@ -198,6 +229,7 @@ class SimulationEnv:
         for p in boarding_pax:
             p.state = PaxState.ON_BOARD
             p.on_transit_id = transit.id
+            p.boarding_transit_time = self.time
             print("     '----Passenger " + str(p.id) + " has boarded transit " + str(transit.id), file=self.log_file)
         # update transit occupancy
         transit.occupancy += len(boarding_pax)
@@ -214,6 +246,8 @@ class SimulationEnv:
                 # update pax state
                 p.state = PaxState.ARRIVED
                 p.on_transit_id = -1
+                self.sim_data.register_time_data(p.id, util.time_diff(p.boarding_transit_time, p.arr_time).total_seconds()/60,
+                                        util.time_diff(self.time, p.boarding_transit_time).total_seconds()/60)
                 time_to_reach = util.time_diff(self.time, p.arr_time).total_seconds()/60
                 print("     '----Passenger " + str(p.id) + " from " + str(p.board_from) + " has arrived at it's destination stop " + str(stop_index) + " in "+ str(time_to_reach)+ " minutes", file=self.log_file)
                 total_time_to_reach += time_to_reach        
@@ -224,8 +258,10 @@ class SimulationEnv:
     def skip_to_next_event(self):
         latest_event_schedule = min(self.event_schedule, key=lambda x:x['time'])
         if self.time > latest_event_schedule['time']:
-            print("Event time" + str(latest_event_schedule['time']) + " has passed somehow")
-            return
+            print("Event time " + str(latest_event_schedule['time']) + " has passed somehow")
+            print("current time:", self.time)
+            print("Event: ", latest_event_schedule)
+            return 
         self.time = latest_event_schedule['time']
         return latest_event_schedule
    

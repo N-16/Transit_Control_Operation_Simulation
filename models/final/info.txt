@@ -1,0 +1,3 @@
+state with free space
+new reward function and
+no consecutive skipping

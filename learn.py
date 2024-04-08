@@ -15,14 +15,14 @@ try:
     with open('../logs/log_' + str(datetime.now())+'.txt', 'a') as f:
         env = SimulationEnv(RL_HET_3_TRANSIT_INFO, HET_TRANSIT_SCHEDULE,
                              STOPS, PAX_DEMAND, START_TIME, END_TIME,
-                               log_file=f, load_models=False, save_models=True)
+                               log_file=f, load_models=False, save_models=True, save_data=False)
         rewards = []
         epsilons = []
         cache_prev_epsilon = []
         first_itr = True
         episodes = 500
         early_stopper = EarlyStopper()
-        for i in range(0, episodes):
+        for i in range(1, episodes + 1):
             print("Episode ", i, "/", episodes)
             max_itr = 100000000000
             itr = 0

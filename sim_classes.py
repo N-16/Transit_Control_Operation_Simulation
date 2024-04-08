@@ -172,6 +172,7 @@ class Passenger:
         self.board_from = board_from
         self.alight_to = alight_to
         self.arr_time = arr_time
+        self.boarding_transit_time = 0
         self.state = PaxState.TO_BOARD
         self.on_transit_id = -1
 
