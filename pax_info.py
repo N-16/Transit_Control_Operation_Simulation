@@ -12,7 +12,8 @@ import numpy as np
 
 
 
-def generate_pax_demand(start_time, end_time, stop_demand, terminal_indices, peaks, arr_rate_variability=0.05):
+def generate_pax_demand(start_time=sim_info.PAX_START_TIME, end_time=sim_info.PAX_END_TIME,
+                        stop_demand=STOP_DEMAND, terminal_indices= (1, 10), peaks=sim_info.PEAKS, arr_rate_variability=0.05):
     # for each stop
     pax_demand = []
     for stop in stop_demand:

@@ -40,6 +40,7 @@ y = []
 for dmnd in STOP_DEMAND:
     x.append(dmnd['index'])
     y.append(dmnd['arr_rate'])
+    print(dmnd['arr_rate']*1.15)
 
 #plt.bar(x, y)
 #plt.show()
